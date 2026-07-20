@@ -52,7 +52,7 @@ with gr.Blocks(title="Sycophancy Bot Probe") as demo:
 
     session_info = gr.Markdown()
 
-    chatbot_ui = gr.Chatbot(label="Conversation", height=420, type="tuples")
+    chatbot_ui = gr.Chatbot(label="Conversation", height=420)
     msg_box = gr.Textbox(label="Your message", placeholder="Type your argument or evidence here...")
 
     with gr.Accordion("Debug trace (proof score, model reasoning, belief changes)", open=True):
