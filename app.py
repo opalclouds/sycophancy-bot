@@ -70,7 +70,10 @@ with gr.Blocks(title="Sycophancy Bot Probe") as demo:
         outputs=[chatbot_ui, belief_state, history_state, trace_state, trace_display],
     ).then(lambda: "", outputs=msg_box)
 
-
 if __name__ == "__main__":
     import os
-    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=int(os.environ.get("PORT", 7860)),
+        share=True,
+    )
