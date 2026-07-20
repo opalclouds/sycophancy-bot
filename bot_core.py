@@ -2,11 +2,17 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
+
+import os
+import time
+import requests
+
 from belief_state import BeliefState
 from proof_detector import score_proof, extract_candidate_stance  # noqa: F401
 
 
 MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+API_URL = f"https://api-inference.huggingface.co/models/{MODEL_NAME}"
 
 REASONING_TRIGGER_WORDS = [
     "yes", "change", "update", "evidence",
@@ -16,12 +22,63 @@ REASONING_TRIGGER_WORDS = [
 
 
 def load_model():
-    print("Loading model...", flush=True)
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
-    model.eval()
-    print("Model loaded.", flush=True)
-    return model, tokenizer
+    """
+    Kept for interface compatibility with app.py (which calls load_model()
+    once at startup). There's no local model to load anymore -- this just
+    checks that an HF_TOKEN is present and returns placeholders.
+    """
+    token = os.environ.get("HF_TOKEN")
+    if not token:
+        raise RuntimeError(
+            "HF_TOKEN environment variable is not set. "
+            "Get a free token at huggingface.co -> Settings -> Access Tokens, "
+            "then set it as an environment variable named HF_TOKEN."
+        )
+    print("Using Hugging Face Inference API (no local model load needed).", flush=True)
+    return None, None  # (model, tokenizer) placeholders -- unused in this version
+
+
+def _call_api(prompt, max_new_tokens=60, retries=3):
+    """
+    Calls the HF Inference API. Handles the common 'model is loading' cold
+    start by retrying after a short wait, since free-tier models unload when
+    idle and take 10-30s to spin back up on first use.
+    """
+    token = os.environ["HF_TOKEN"]
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": max_new_tokens,
+            "do_sample": True,
+            "top_p": 0.9,
+            "temperature": 0.8,
+            "return_full_text": False,
+        },
+    }
+
+    for attempt in range(retries):
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+
+        if response.status_code == 200:
+            data = response.json()
+            # Standard text-generation response shape: [{"generated_text": "..."}]
+            if isinstance(data, list) and data and "generated_text" in data[0]:
+                text = data[0]["generated_text"].strip()
+                return text.split("\n")[0]
+            return ""
+
+        if response.status_code == 503:
+            # Model is cold-starting on Hugging Face's side -- wait and retry.
+            wait_s = 15
+            print(f"Model loading on HF servers, retrying in {wait_s}s...", flush=True)
+            time.sleep(wait_s)
+            continue
+
+        # Any other error: surface it clearly instead of failing silently.
+        raise RuntimeError(f"HF Inference API error {response.status_code}: {response.text[:300]}")
+
+    raise RuntimeError("HF Inference API did not respond successfully after retries.")
 
 
 def build_reasoning_prompt(belief, proof_score, user_message):
@@ -43,21 +100,9 @@ def build_reply_prompt(belief, reasoning, history, user_message):
 
 
 def generate_reply(model, tokenizer, prompt, max_new_tokens=60):
-    inputs = tokenizer.encode(prompt, return_tensors="pt")
-    if inputs.shape[1] > 900:
-        inputs = inputs[:, -900:]
-
-    output = model.generate(
-        inputs,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        top_p=0.9,
-        temperature=0.8,
-        pad_token_id=tokenizer.eos_token_id,
-    )
-    full_text = tokenizer.decode(output[0], skip_special_tokens=True)
-    reply = full_text[len(prompt):].strip()
-    return reply.split("\n")[0]
+    # `model` and `tokenizer` args are kept so call sites don't need to change,
+    # but they're unused now -- generation happens via the API instead.
+    return _call_api(prompt, max_new_tokens=max_new_tokens)
 
 
 def extract_belief_from_evidence(model, tokenizer, user_message, old_stance):
@@ -66,8 +111,7 @@ def extract_belief_from_evidence(model, tokenizer, user_message, old_stance):
         f"{user_message}\n\n"
         f"Summarize the new belief being argued for in one short clean sentence:\n"
     )
-    with torch.no_grad():
-        summary = generate_reply(model, tokenizer, prompt, max_new_tokens=30)
+    summary = generate_reply(model, tokenizer, prompt, max_new_tokens=30)
     return summary if summary else old_stance
 
 
@@ -75,8 +119,7 @@ def run_turn(model, tokenizer, belief: BeliefState, history: list, user_message:
     proof_score = score_proof(user_message)
 
     reasoning_prompt = build_reasoning_prompt(belief, proof_score, user_message)
-    with torch.no_grad():
-        reasoning = generate_reply(model, tokenizer, reasoning_prompt, max_new_tokens=40)
+    reasoning = generate_reply(model, tokenizer, reasoning_prompt, max_new_tokens=40)
 
     reasoning_says_change = any(word in reasoning.lower() for word in REASONING_TRIGGER_WORDS)
     candidate = extract_belief_from_evidence(model, tokenizer, user_message, belief.stance)
@@ -85,8 +128,7 @@ def run_turn(model, tokenizer, belief: BeliefState, history: list, user_message:
         belief.hold_firm()
 
     reply_prompt = build_reply_prompt(belief, reasoning, history, user_message)
-    with torch.no_grad():
-        reply = generate_reply(model, tokenizer, reply_prompt, max_new_tokens=80)
+    reply = generate_reply(model, tokenizer, reply_prompt, max_new_tokens=80)
 
     history.append(("User", user_message))
     history.append(("Bot", reply))
