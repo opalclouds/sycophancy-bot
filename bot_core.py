@@ -6,7 +6,7 @@ from belief_state import BeliefState
 from proof_detector import score_proof, extract_candidate_stance  # noqa: F401
 
 
-MODEL_NAME = ""distilgpt2""
+MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
 REASONING_TRIGGER_WORDS = [
     "yes", "change", "update", "evidence",
