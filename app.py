@@ -72,4 +72,5 @@ with gr.Blocks(title="Sycophancy Bot Probe") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    import os
+    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
