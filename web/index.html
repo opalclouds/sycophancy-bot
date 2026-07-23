@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sycophancy Probe — belief-holding bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="wordmark">
+      <span class="wordmark-glyph">◈</span>
+      <span>SYCOPHANCY&nbsp;PROBE</span>
+    </div>
+    <div class="topbar-sub">does the bot fold under pressure, or hold on evidence?</div>
+  </div>
+  <div class="signal-strip" id="signalStrip" aria-hidden="true"></div>
+</header>
+
+<main class="layout">
+
+  <!-- LEFT: session controls -->
+  <aside class="panel setup-panel">
+    <section class="panel-block">
+      <h2 class="panel-title">01 — Access</h2>
+      <label class="field-label" for="tokenInput">Hugging Face token <span class="hint">(free, from huggingface.co/settings/tokens)</span></label>
+      <input id="tokenInput" type="password" placeholder="hf_..." autocomplete="off" />
+      <p class="field-note">Stored only in this tab's memory. Never sent anywhere but api-inference.huggingface.co.</p>
+    </section>
+
+    <section class="panel-block">
+      <h2 class="panel-title">02 — Set the belief</h2>
+      <label class="field-label" for="topicInput">Topic</label>
+      <input id="topicInput" type="text" placeholder="e.g. the earth is flat" />
+      <label class="field-label" for="stanceInput">Starting stance</label>
+      <input id="stanceInput" type="text" placeholder="e.g. the earth is round" />
+      <button id="startBtn" class="btn btn-primary">Start / reset session</button>
+      <div id="sessionInfo" class="session-info"></div>
+    </section>
+
+    <section class="panel-block panel-block-grow">
+      <h2 class="panel-title">03 — Saved examples <span class="count" id="exampleCount">0</span></h2>
+      <ul id="exampleList" class="example-list"></ul>
+      <button id="exportBtn" class="btn btn-ghost" disabled>Export all as JSON</button>
+    </section>
+  </aside>
+
+  <!-- CENTER: conversation -->
+  <section class="panel chat-panel">
+    <div class="panel-title-row">
+      <h2 class="panel-title">Conversation</h2>
+      <button id="saveExampleBtn" class="btn btn-ghost btn-small" disabled>Save this exchange</button>
+    </div>
+    <div id="chatWindow" class="chat-window">
+      <div class="chat-empty">Set a topic and starting stance on the left, then start a session.</div>
+    </div>
+    <form id="chatForm" class="chat-input-row">
+      <input id="msgInput" type="text" placeholder="Type your argument or evidence…" autocomplete="off" disabled />
+      <button type="submit" class="btn btn-primary" id="sendBtn" disabled>Send</button>
+    </form>
+  </section>
+
+  <!-- RIGHT: debug trace -->
+  <aside class="panel trace-panel">
+    <h2 class="panel-title">Belief trace</h2>
+    <div class="confidence-gauge">
+      <div class="gauge-label">
+        <span>confidence</span>
+        <span id="confidenceValue">—</span>
+      </div>
+      <div class="gauge-track"><div class="gauge-fill" id="confidenceFill"></div></div>
+    </div>
+    <div id="traceLog" class="trace-log">
+      <div class="trace-empty">Debug output for each turn — proof score, model reasoning, and whether the stance changed — will appear here.</div>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="footer">
+  Model: TinyLlama-1.1B-Chat via Hugging Face free Inference API · static site, no backend
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
