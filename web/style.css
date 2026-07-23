@@ -322,8 +322,8 @@ input[type="text"]:focus, input[type="password"]:focus {
   padding-top: 12px;
 }
 
-.chat-input-row input { flex: 1; }
-.chat-input-row .btn { flex-shrink: 0; }
+.chat-input-row input { flex: 1; min-width: 0; }
+.chat-input-row .btn { flex-shrink: 0; width: auto; margin-top: 0; padding: 9px 20px; }
 
 /* ---------- Trace panel ---------- */
 
