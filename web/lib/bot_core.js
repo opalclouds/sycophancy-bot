@@ -4,7 +4,7 @@
 import { scoreProof } from "./proof_detector.js";
 
 const MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0";
-const API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}`;
+const API_URL = `https://router.huggingface.co/hf-inference/models/${MODEL_NAME}`;
 
 const REASONING_TRIGGER_WORDS = [
   "yes", "change", "update", "evidence",
