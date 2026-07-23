@@ -16,18 +16,3 @@ class BeliefState:
     
     def hold_firm(self):
         self.confidence = min(0.99, self.confidence + 0.05)
-
-
-from belief_state import BeliefState
-b = BeliefState(topic="best language for beginners", stance="Python is easier")
-
-# pretend this came from a proof detector later
-changed = b.consider_update(proof_score=0.3, candidate_stance="JavaScript is easier")
-if not changed:
-    b.hold_firm()
-print(b.stance, b.confidence, changed)
-
-changed = b.consider_update(proof_score=0.9, candidate_stance="Java is easier")
-if not changed:
-    b.hold_firm()
-print(b.stance, b.confidence, changed)
